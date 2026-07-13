@@ -5,6 +5,8 @@ import morgan from "morgan";
 
 import { env } from "./config/env";
 import { healthRouter } from "./routes/health.routes";
+import { productsRouter } from "./routes/products.routes";
+import { ordersRouter } from "./routes/orders.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 const app = express();
@@ -25,11 +27,9 @@ if (!env.isProduction) {
 }
 
 // --- Routes ---
-// More routers (auth, orders, products, admin, ...) get mounted here in
-// the upcoming steps, each under its own path, e.g.:
-//   app.use("/api/auth", authRouter);
-//   app.use("/api/orders", ordersRouter);
 app.use("/api/health", healthRouter);
+app.use("/api/products", productsRouter);
+app.use("/api/orders", ordersRouter);
 
 // --- 404 + error handling (must be registered last) ---
 app.use(notFoundHandler);
