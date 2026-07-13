@@ -15,25 +15,25 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-3xl items-center justify-between p-4">
-        <Link href="/" className="font-bold text-brand-700">
+    <nav className="sticky top-0 z-20 border-b border-paper-line bg-paper/95 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
+        <Link href="/" className="font-display text-xl font-bold text-ink">
           المتجر
         </Link>
 
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/products" className="text-gray-600 hover:text-brand-700">
+        <div className="flex items-center gap-6 text-sm">
+          <Link href="/products" className="text-muted transition hover:text-gold-deep">
             الخدمات
           </Link>
 
           {loading ? null : user ? (
             <>
-              <Link href="/orders" className="text-gray-600 hover:text-brand-700">
+              <Link href="/orders" className="text-muted transition hover:text-gold-deep">
                 طلباتي
               </Link>
               <button
                 onClick={handleSignOut}
-                className="rounded-lg bg-gray-100 px-3 py-1.5 text-gray-700 hover:bg-gray-200"
+                className="rounded-full border border-paper-line px-4 py-1.5 text-ink transition hover:border-gold hover:text-gold-deep"
               >
                 خروج
               </button>
@@ -41,7 +41,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="rounded-lg bg-brand-600 px-3 py-1.5 text-white hover:bg-brand-700"
+              className="rounded-full bg-gold px-4 py-1.5 font-medium text-ink transition hover:bg-gold-deep hover:text-paper"
             >
               دخول
             </Link>
