@@ -27,21 +27,19 @@ export function notFoundHandler(req: Request, res: Response): void {
 }
 
 // Express recognizes this as an error-handling middleware purely by its
-// 4-argument signature — the unused `next` param must stay.
+// 4-argument signature — the unused params must stay (prefixed with _
+// so TypeScript's noUnusedParameters rule doesn't flag them).
 export function errorHandler(
   err: unknown,
-  req: Request,
+  _req: Request,
   res: Response,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction
+  _next: NextFunction
 ): void {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({ error: { message: err.message } });
     return;
   }
 
-  // Unexpected/programmer error: log full detail server-side, but never
-  // leak internals to the client.
   console.error("Unhandled error:", err);
   res.status(500).json({
     error: {
