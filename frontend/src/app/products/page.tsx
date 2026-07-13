@@ -29,32 +29,26 @@ export default async function ProductsPage() {
   const products = await getProducts();
 
   return (
-    <main className="mx-auto max-w-3xl p-6">
-      <h1 className="mb-6 text-2xl font-bold text-brand-700">الخدمات المتاحة</h1>
+    <main className="mx-auto max-w-3xl px-5 py-12">
+      <p className="mb-2 font-mono text-xs tracking-widest text-gold-deep">كل الخدمات</p>
+      <h1 className="mb-8 font-display text-2xl font-bold text-ink">الخدمات المتاحة</h1>
 
       {products.length === 0 ? (
-        <p className="rounded-lg bg-white p-6 text-center text-gray-500 ring-1 ring-gray-200">
-          لا توجد خدمات متاحة حاليًا.
-        </p>
+        <div className="rounded-2xl border border-dashed border-paper-line bg-paper-dim p-10 text-center">
+          <p className="text-muted">مفيش خدمات متاحة دلوقتي، تابعنا قريب.</p>
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {products.map((product) => (
-            <div
-              key={product.id}
-              className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-200"
-            >
-              <span className="mb-2 inline-block rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
+            <div key={product.id} className="rounded-2xl border border-paper-line bg-white p-5">
+              <span className="mb-3 inline-block rounded-full bg-gold-soft px-3 py-1 font-mono text-[11px] text-gold-deep">
                 {categoryLabels[product.category]}
               </span>
-              <h2 className="mb-1 font-semibold text-gray-900">
-                {product.title}
-              </h2>
+              <h2 className="font-semibold text-ink">{product.title}</h2>
               {product.description && (
-                <p className="mb-3 line-clamp-2 text-sm text-gray-500">
-                  {product.description}
-                </p>
+                <p className="mt-1 line-clamp-2 text-sm text-muted">{product.description}</p>
               )}
-              <p className="font-bold text-brand-700">{product.price} ج.م</p>
+              <p className="mt-4 font-mono text-lg font-semibold text-gold-deep">{product.price} ج.م</p>
             </div>
           ))}
         </div>
