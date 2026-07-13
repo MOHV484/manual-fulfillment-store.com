@@ -4,8 +4,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 
 export const healthRouter = Router();
 
-// Simple liveness check — the process is up.
-healthRouter.get("/", (req, res) => {
+healthRouter.get("/", (_req, res) => {
   res.json({
     status: "ok",
     uptimeSeconds: Math.round(process.uptime()),
@@ -13,11 +12,9 @@ healthRouter.get("/", (req, res) => {
   });
 });
 
-// Readiness check — the process is up AND can reach the database.
-// Useful for deployment platforms (Render/Railway) health checks.
 healthRouter.get(
   "/db",
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (_req, res) => {
     const { error } = await supabaseAdmin
       .from("users")
       .select("id", { count: "exact", head: true });
