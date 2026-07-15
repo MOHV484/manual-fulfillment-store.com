@@ -17,10 +17,9 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-20 border-b border-paper-line bg-paper/95 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-        <Link href="/" className="flex items-center">
-          <span className="rounded-xl bg-orange px-3 py-1.5 font-display text-lg font-black text-paper">
-            رايزي
-          </span>
+        <Link href="/" className="flex items-center gap-0.5 font-display text-xl font-black tracking-tight">
+          <span className="text-orange">RAIZEY</span>
+          <span className="text-ink">STORE</span>
         </Link>
 
         <div className="flex items-center gap-6 text-sm">
