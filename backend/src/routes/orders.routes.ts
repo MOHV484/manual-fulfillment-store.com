@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { env } from "../config/env";
 import { supabaseAdmin } from "../config/supabase";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../middleware/errorHandler";
@@ -9,14 +10,17 @@ export const ordersRouter = Router();
 // All order routes require a logged-in user.
 ordersRouter.use(requireAuth);
 
-// POST /api/orders — client submits a new order (status starts as "pending")
+// POST /api/orders — client submits a new order (status starts as "pending").
+// `receipt_path` comes from POST /api/uploads/receipt — a private Storage
+// path, never a public URL. Stored in the `receipt_url` column (name kept
+// for schema compatibility with the spec).
 ordersRouter.post(
   "/",
   asyncHandler(async (req, res) => {
-    const { product_id, player_id, account_details, receipt_url } = req.body;
+    const { product_id, player_id, account_details, receipt_path } = req.body;
 
-    if (!product_id || !receipt_url) {
-      throw new AppError("product_id and receipt_url are required", 400);
+    if (!product_id || !receipt_path) {
+      throw new AppError("product_id و receipt_path مطلوبين", 400);
     }
 
     const { data, error } = await supabaseAdmin
@@ -26,7 +30,7 @@ ordersRouter.post(
         product_id,
         player_id: player_id ?? null,
         account_details: account_details ?? null,
-        receipt_url,
+        receipt_url: receipt_path,
         status: "pending",
       })
       .select()
@@ -77,6 +81,37 @@ ordersRouter.get(
   })
 );
 
+// GET /api/orders/:id/receipt-url — a short-lived signed URL to view the
+// receipt image. Only the order's owner or a moderator/super_admin may
+// request it, and it expires quickly (RECEIPT_SIGNED_URL_TTL, default 5
+// minutes) per the file-storage security spec.
+ordersRouter.get(
+  "/:id/receipt-url",
+  asyncHandler(async (req, res) => {
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, receipt_url")
+      .eq("id", req.params.id)
+      .single();
+
+    if (error || !order) throw new AppError("Order not found", 404);
+
+    const isOwner = order.user_id === req.user!.id;
+    const isStaff = req.user!.role === "moderator" || req.user!.role === "super_admin";
+    if (!isOwner && !isStaff) {
+      throw new AppError("لا تملك صلاحية مشاهدة هذا الإيصال", 403);
+    }
+
+    const { data: signed, error: signError } = await supabaseAdmin.storage
+      .from(env.receiptsBucket)
+      .createSignedUrl(order.receipt_url, env.receiptSignedUrlTtl);
+
+    if (signError || !signed) throw new AppError("فشل إنشاء رابط المعاينة", 500);
+
+    res.json({ url: signed.signedUrl, expiresInSeconds: env.receiptSignedUrlTtl });
+  })
+);
+
 // POST /api/orders/:id/claim — a moderator locks the order for themself.
 // This single conditional UPDATE is the whole "race condition fix": it only
 // succeeds if the order is still "pending". If another moderator claimed it
@@ -98,10 +133,7 @@ ordersRouter.post(
       .single();
 
     if (error || !data) {
-      throw new AppError(
-        "الطلب ده اتحجز بالفعل من مشرف تاني أو مش موجود",
-        409
-      );
+      throw new AppError("الطلب ده اتحجز بالفعل من مشرف تاني أو مش موجود", 409);
     }
 
     await supabaseAdmin.from("audit_logs").insert({
