@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/authContext";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "رايزي | منصة الشحن اليدوي والتحقق المالي",
+  title: "RAIZEY STORE | ​منصة الشحن الآمنة لخدمات الألعاب الرقمية",
   description: "منصة شحن وتأمين رقمي، تُراجَع كل عملية فيها يدويًا قبل التسليم.",
 };
 
