@@ -1,62 +1,81 @@
-"use client";
+'use client';
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "./supabaseClient";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { supabase } from './supabaseClient';
+import { User, Session } from '@supabase/supabase-js';
 
-interface AuthContextValue {
+interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    // جلب بيانات الجلسة الحالية عند إقلاع التطبيق
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-      }
-    );
+    // الاستماع الفوري لتغيرات حالة المصادقة (دخول، خروج، تغيير الجلسة)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
-      listener.subscription.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
-  async function signOut() {
-    await supabase.auth.signOut();
-  }
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    });
+    if (error) throw error;
+  };
+
+  const signInWithFacebook = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'facebook',
+      options: {
+        redirectTo: `${window.location.origin}`,
+      },
+    });
+    if (error) throw error;
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
 
   return (
-    <AuthContext.Provider
-      value={{ user: session?.user ?? null, session, loading, signOut }}
-    >
+    <AuthContext.Provider value={{ user, session, loading, signInWithGoogle, signInWithFacebook, signOut }}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used inside <AuthProvider>");
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth يجب أن يتم استدعاؤه داخل نطاق AuthProvider المخصص.');
   }
-  return ctx;
-}
+  return context;
+};
