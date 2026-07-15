@@ -4,8 +4,8 @@ import { AuthProvider } from "@/lib/authContext";
 import Navbar from "@/components/Navbar";
 
 export const metadata: Metadata = {
-  title: "المتجر | Manual Fulfillment Store",
-  description: "منصة إدارة الشحن اليدوي والتحقق المالي",
+  title: "رايزي | منصة الشحن اليدوي والتحقق المالي",
+  description: "منصة شحن وتأمين رقمي، تُراجَع كل عملية فيها يدويًا قبل التسليم.",
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl">
-      <body className="bg-gray-50 text-gray-900 antialiased">
+      <body className="bg-paper text-ink antialiased">
         <AuthProvider>
           <Navbar />
           {children}
