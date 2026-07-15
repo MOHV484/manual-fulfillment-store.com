@@ -29,6 +29,23 @@ productsRouter.get(
   })
 );
 
+// GET /api/products/admin/all — Super Admin sees every product, including
+// unavailable ones, for the pricing/management screen.
+productsRouter.get(
+  "/admin/all",
+  requireAuth,
+  requireRole("super_admin"),
+  asyncHandler(async (_req, res) => {
+    const { data, error } = await supabaseAdmin
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new AppError(error.message, 500);
+    res.json({ products: data });
+  })
+);
+
 // GET /api/products/:id — single product details
 productsRouter.get(
   "/:id",
@@ -96,7 +113,7 @@ productsRouter.patch(
       .select()
       .single();
 
-    if (error || !data) throw new AppError("Product not found", 404);
+    if (error || !data) throw new AppError("تعذر تحديث الخدمة", 400);
 
     res.json({ product: data });
   })
