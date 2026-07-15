@@ -119,11 +119,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-paper-line bg-ink py-10 text-center">
-        <span className="mb-3 inline-block rounded-lg bg-orange px-2.5 py-1 font-display text-sm font-black text-paper">
-          رايزي
-        </span>
-        <p className="text-xs text-muted-dark">منصة الشحن اليدوي والتحقق المالي</p>
+      <footer className="border-t border-ink-line bg-ink py-10 text-center">
+        <p className="mb-3 font-display text-lg font-black tracking-tight">
+          <span className="text-orange">RAIZEY</span> <span className="text-paper">STORE</span>
+        </p>
+        <p className="text-xs text-muted-dark">​منصة الشحن الآمنة لخدمات الألعاب الرقمية</p>
       </footer>
     </main>
   );
