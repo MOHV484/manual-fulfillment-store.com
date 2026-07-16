@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/authContext";
 
 export default function Navbar() {
-  const { user, loading, signOut } = useAuth();
+  const { user, isAdmin, loading, signOut } = useAuth();
   const router = useRouter();
 
   async function handleSignOut() {
@@ -29,9 +29,20 @@ export default function Navbar() {
 
           {loading ? null : user ? (
             <>
-              <Link href="/orders" className="font-medium text-muted transition hover:text-orange">
-                طلباتي
-              </Link>
+              {isAdmin ? (
+                <Link href="/admin/orders" className="font-medium text-muted transition hover:text-orange">
+                  لوحة التحكم
+                </Link>
+              ) : (
+                <>
+                  <Link href="/orders" className="font-medium text-muted transition hover:text-orange">
+                    طلباتي
+                  </Link>
+                  <Link href="/wallet" className="font-medium text-muted transition hover:text-orange">
+                    محفظتي
+                  </Link>
+                </>
+              )}
               <button
                 onClick={handleSignOut}
                 className="rounded-full border border-paper-line px-4 py-1.5 font-medium text-ink transition hover:border-orange hover:text-orange"

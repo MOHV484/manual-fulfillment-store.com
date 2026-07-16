@@ -1,10 +1,29 @@
 import { Router } from "express";
+import { z } from "zod";
 import { supabaseAdmin } from "../config/supabase";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { validateBody } from "../middleware/validate";
+import { sensitiveActionLimiter } from "../middleware/rateLimit";
 
 export const productsRouter = Router();
+
+const createProductSchema = z.object({
+  title: z.string().min(1).max(200),
+  category: z.string().min(1).max(100),
+  price: z.number().positive(),
+  description: z.string().max(1000).optional(),
+  is_available: z.boolean().optional(),
+});
+
+const updateProductSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  category: z.string().min(1).max(100).optional(),
+  price: z.number().positive().optional(),
+  description: z.string().max(1000).optional(),
+  is_available: z.boolean().optional(),
+});
 
 // GET /api/products — public list of available products (clients browse here)
 productsRouter.get(
@@ -29,8 +48,7 @@ productsRouter.get(
   })
 );
 
-// GET /api/products/admin/all — Super Admin sees every product, including
-// unavailable ones, for the pricing/management screen.
+// GET /api/products/admin/all — Super Admin sees every product, including unavailable ones
 productsRouter.get(
   "/admin/all",
   requireAuth,
@@ -67,12 +85,10 @@ productsRouter.post(
   "/",
   requireAuth,
   requireRole("super_admin"),
+  sensitiveActionLimiter,
+  validateBody(createProductSchema),
   asyncHandler(async (req, res) => {
     const { title, description, category, price, is_available } = req.body;
-
-    if (!title || !category || price === undefined) {
-      throw new AppError("title, category and price are required", 400);
-    }
 
     const { data, error } = await supabaseAdmin
       .from("products")
@@ -97,6 +113,8 @@ productsRouter.patch(
   "/:id",
   requireAuth,
   requireRole("super_admin"),
+  sensitiveActionLimiter,
+  validateBody(updateProductSchema),
   asyncHandler(async (req, res) => {
     const { title, description, category, price, is_available } = req.body;
 

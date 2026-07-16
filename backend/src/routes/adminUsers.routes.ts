@@ -1,11 +1,33 @@
 import { Router } from "express";
+import { z } from "zod";
 import { supabaseAdmin } from "../config/supabase";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { validateBody } from "../middleware/validate";
+import { sensitiveActionLimiter } from "../middleware/rateLimit";
 
 export const adminUsersRouter = Router();
 adminUsersRouter.use(requireAuth, requireRole("super_admin"));
+
+// Strong password: 10+ chars, at least one uppercase, lowercase, and digit
+const strongPassword = z
+  .string()
+  .min(10, "Password must be at least 10 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one digit");
+
+const createModeratorSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  phone: z.string().min(5).max(30),
+  password: strongPassword,
+});
+
+const updateModeratorSchema = z.object({
+  status: z.enum(["active", "suspended"]),
+});
 
 // GET /api/admin/moderators — list every staff account
 adminUsersRouter.get(
@@ -23,16 +45,12 @@ adminUsersRouter.get(
 );
 
 // POST /api/admin/moderators — create a brand-new moderator account.
-// Uses the Supabase Admin API to create the auth user directly (staff
-// accounts don't need email confirmation), then promotes the row our
-// on_auth_user_created trigger just inserted from 'client' to 'moderator'.
 adminUsersRouter.post(
   "/moderators",
+  sensitiveActionLimiter,
+  validateBody(createModeratorSchema),
   asyncHandler(async (req, res) => {
     const { name, email, phone, password } = req.body;
-    if (!name || !email || !phone || !password) {
-      throw new AppError("name, email, phone و password مطلوبين", 400);
-    }
 
     const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -45,38 +63,40 @@ adminUsersRouter.post(
       throw new AppError(createError?.message ?? "فشل إنشاء الحساب", 400);
     }
 
-    const { data, error } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from("users")
-      .update({ role: "moderator" })
+      .update({ role: "moderator", name, phone })
+      .eq("id", created.user.id);
+
+    if (updateError) throw new AppError(updateError.message, 500);
+
+    const { data: newMod } = await supabaseAdmin
+      .from("users")
+      .select("id, name, email, phone, role, status, created_at")
       .eq("id", created.user.id)
-      .select("id, name, email, phone, role, status")
       .single();
 
-    if (error) throw new AppError(error.message, 400);
-
-    res.status(201).json({ moderator: data });
+    res.status(201).json({ moderator: newMod });
   })
 );
 
-// PATCH /api/admin/moderators/:id/status — suspend or re-activate a
-// moderator account. Super Admin accounts can't be touched from here.
+// PATCH /api/admin/moderators/:id — toggle active/suspended status
 adminUsersRouter.patch(
-  "/moderators/:id/status",
+  "/moderators/:id",
+  sensitiveActionLimiter,
+  validateBody(updateModeratorSchema),
   asyncHandler(async (req, res) => {
-    const { status } = req.body as { status?: "active" | "suspended" };
-    if (status !== "active" && status !== "suspended") {
-      throw new AppError("status لازم يكون active أو suspended", 400);
-    }
+    const { status } = req.body;
 
     const { data, error } = await supabaseAdmin
       .from("users")
       .update({ status })
       .eq("id", req.params.id)
-      .neq("role", "super_admin")
+      .in("role", ["moderator"])
       .select("id, name, email, role, status")
       .single();
 
-    if (error || !data) throw new AppError("تعذر تحديث الحالة", 400);
+    if (error || !data) throw new AppError("Moderator not found", 404);
 
     res.json({ moderator: data });
   })

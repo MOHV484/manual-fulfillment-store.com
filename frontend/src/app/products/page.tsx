@@ -1,3 +1,5 @@
+import ProductCard from "@/components/ProductCard";
+
 interface Product {
   id: string;
   title: string;
@@ -6,12 +8,6 @@ interface Product {
   price: number;
   is_available: boolean;
 }
-
-const categoryLabels: Record<Product["category"], string> = {
-  gaming_charge: "شحن ألعاب",
-  account_security: "تأمين حسابات",
-  digital_cards: "بطاقات رقمية",
-};
 
 async function getProducts(): Promise<Product[]> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -40,16 +36,7 @@ export default async function ProductsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {products.map((product) => (
-            <div key={product.id} className="rounded-2xl border border-paper-line bg-white p-5">
-              <span className="mb-3 inline-block rounded-full bg-orange-soft px-3 py-1 text-xs font-bold text-orange">
-                {categoryLabels[product.category]}
-              </span>
-              <h2 className="font-bold text-ink">{product.title}</h2>
-              {product.description && (
-                <p className="mt-1 line-clamp-2 text-sm text-muted">{product.description}</p>
-              )}
-              <p className="mt-4 font-display text-lg font-black text-orange">{product.price} ج.م</p>
-            </div>
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       )}

@@ -14,8 +14,12 @@ import { auditRouter } from "./routes/audit.routes";
 import { adminUsersRouter } from "./routes/adminUsers.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { apiLimiter } from "./middleware/rateLimit";
 
 const app = express();
+
+// Trust the first proxy (required for accurate req.ip behind Render / Nginx)
+app.set("trust proxy", 1);
 
 // --- Global middleware ---
 app.use(helmet());
@@ -31,6 +35,9 @@ app.use(express.urlencoded({ extended: true }));
 // Keep basic request logging on in production too — needed to diagnose
 // issues from the Render Logs tab.
 app.use(morgan(env.isProduction ? "combined" : "dev"));
+
+// Global rate limit — tighter per-action limits are applied on individual routes
+app.use(apiLimiter);
 
 // --- Routes ---
 app.use("/api/health", healthRouter);

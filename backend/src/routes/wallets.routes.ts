@@ -1,11 +1,19 @@
 import { Router } from "express";
+import { z } from "zod";
 import { supabaseAdmin } from "../config/supabase";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
+import { validateBody } from "../middleware/validate";
+import { sensitiveActionLimiter } from "../middleware/rateLimit";
 
 export const walletsRouter = Router();
 walletsRouter.use(requireAuth);
+
+const adjustBalanceSchema = z.object({
+  amount: z.number(),
+  reason: z.string().min(1).max(500),
+});
 
 // GET /api/wallets/me — the logged-in client's own wallet balance
 walletsRouter.get(
@@ -22,18 +30,14 @@ walletsRouter.get(
   })
 );
 
-// PATCH /api/wallets/:userId — Super Admin manually adjusts a client's
-// balance (e.g. a refund for a rejected order). Always written to
-// audit_logs — balance changes are exactly what the audit trail exists to
-// catch.
+// PATCH /api/wallets/:userId — Super Admin manually adjusts a client's balance
 walletsRouter.patch(
   "/:userId",
   requireRole("super_admin"),
+  sensitiveActionLimiter,
+  validateBody(adjustBalanceSchema),
   asyncHandler(async (req, res) => {
-    const { amount, reason } = req.body as { amount?: number; reason?: string };
-    if (typeof amount !== "number" || !reason) {
-      throw new AppError("amount (رقم) و reason مطلوبين", 400);
-    }
+    const { amount, reason } = req.body;
 
     const { data: existing, error: fetchError } = await supabaseAdmin
       .from("wallets")

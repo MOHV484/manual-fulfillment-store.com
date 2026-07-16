@@ -1,43 +1,25 @@
-// A short, sharp two-tone alert beep generated on the fly using the Web Audio API.
-export const playBeep = () => {
+// A short, sharp two-tone alert beep generated on the fly with the Web
+// Audio API — no audio asset file to ship, host, or fail to load.
+export function playAlertBeep() {
   if (typeof window === "undefined") return;
 
-  try {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
+  const AudioContextClass =
+    window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return;
 
-    const ctx = new AudioContext();
+  const ctx = new AudioContextClass();
+  const now = ctx.currentTime;
 
-    // النغمة الأولى
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(880, ctx.currentTime); // A5
-    gain1.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start();
-    osc1.stop(ctx.currentTime + 0.1);
-
-    // النغمة الثانية (تأخير بسيط ليعطي تأثير نغمتين خلف بعض)
-    setTimeout(() => {
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(1200, ctx.currentTime); // نغمة أعلى حدة
-      gain2.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start();
-      osc2.stop(ctx.currentTime + 0.1);
-    }, 100);
-
-  } catch (error) {
-    console.error("Failed to play notification sound:", error);
-  }
-};
-
-// تصدير افتراضي لضمان عدم حدوث أخطاء في الاستيراد بأي مكان في المشروع
-export default playBeep;
+  [880, 1100].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.001, now + i * 0.18);
+    gain.gain.exponentialRampToValueAtTime(0.25, now + i * 0.18 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.16);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + i * 0.18);
+    osc.stop(now + i * 0.18 + 0.2);
+  });
+}

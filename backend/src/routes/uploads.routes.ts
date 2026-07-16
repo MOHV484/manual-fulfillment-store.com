@@ -7,6 +7,7 @@ import { AppError } from "../middleware/errorHandler";
 import { requireAuth } from "../middleware/auth";
 import { asyncHandler } from "../utils/asyncHandler";
 import { detectImageMimeType } from "../utils/fileValidation";
+import { sensitiveActionLimiter } from "../middleware/rateLimit";
 
 export const uploadsRouter = Router();
 
@@ -18,12 +19,11 @@ const upload = multer({
 });
 
 // POST /api/uploads/receipt — client uploads a payment receipt image.
-// Returns a private Storage *path*, never a public URL — the bucket is
-// private, and the path is only ever resolved to a short-lived signed URL
-// for the order's owner or an admin (see GET /api/orders/:id/receipt-url).
+// Returns a private Storage *path*, never a public URL.
 uploadsRouter.post(
   "/receipt",
   requireAuth,
+  sensitiveActionLimiter,
   upload.single("receipt"),
   asyncHandler(async (req, res) => {
     if (!req.file) {
@@ -37,8 +37,7 @@ uploadsRouter.post(
     }
 
     const extension = realMimeType === "image/png" ? "png" : "jpg";
-    // Random, unguessable filename under the uploader's own folder — never
-    // trust or store the client-supplied original filename.
+    // Random, unguessable filename under the uploader's own folder
     const path = `${req.user!.id}/${randomUUID()}.${extension}`;
 
     const { error } = await supabaseAdmin.storage
