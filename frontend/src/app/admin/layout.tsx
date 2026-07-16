@@ -19,16 +19,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !isAdmin) {
+    // الانتظار حتى ينتهي التحميل تماماً وتتأكد الجلسة من وجود البروفايل ورتبة الإدارة
+    if (!loading && (!profile || !isAdmin)) {
       router.replace("/login");
     }
-  }, [loading, isAdmin, router]);
+  }, [loading, profile, isAdmin, router]);
 
-  if (loading || !profile) {
+  if (loading) {
     return <div className="flex min-h-[60vh] items-center justify-center text-muted">جاري التحميل...</div>;
   }
 
-  if (!isAdmin) return null;
+  // حماية إضافية في حال لم تكتمل عملية التوجيه بعد لمنع وميض محتوى الإدارة للمستخدم العادي
+  if (!profile || !isAdmin) {
+    return null; 
+  }
 
   return (
     <div className="mx-auto flex max-w-6xl gap-6 px-5 py-8">
