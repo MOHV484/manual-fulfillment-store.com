@@ -36,40 +36,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetches the app-level profile (role/status) from our own backend —
-  // this is the source of truth, not anything read directly off the
-  // Supabase Auth user object.
   const loadProfile = useCallback(async () => {
     try {
       const data = await api.get<{ user: Profile }>('/api/auth/me');
       setProfile(data.user);
-    } catch {
+    } catch (error) {
+      console.error("خطأ أثناء جلب البروفايل من السيرفر:", error);
       setProfile(null);
     }
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session) await loadProfile();
-      setLoading(false);
-    });
+    let isMounted = true;
 
-    // الاستماع الفوري لتغيرات حالة المصادقة (دخول، خروج، تغيير الجلسة)
+    const initializeAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session) {
+          await loadProfile();
+        }
+      } catch (error) {
+        console.error("خطأ في تهيئة الحساب:", error);
+      } finally {
+        if (isMounted) {
+          setLoading(false); // لا ينتهي التحميل إلا بعد جلب كل البيانات
+        }
+      }
+    };
+
+    initializeAuth();
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
+      
+      setLoading(true); // نعيد حالة التحميل أثناء التحديث
       setSession(session);
       setUser(session?.user ?? null);
+
       if (session) {
         await loadProfile();
       } else {
         setProfile(null);
       }
+      setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [loadProfile]);
